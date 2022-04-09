@@ -152,6 +152,6 @@ void loop() {
 //           euler.angle.roll, euler.angle.pitch, euler.angle.yaw,
 //           accelX, accelY, accelZ);
 //  printf("%0.1f,%0.1f,%0.1f\n", earth.axis.x, earth.axis.y, earth.axis.z);
-//  printf("%0.1f,%0.1f,%0.1f\n", accelX, accelY, accelZ);
-    printf("%0.1f,%0.1f,%0.1f\n", gyroscope.array[0], gyroscope.array[1], gyroscope.array[2]);
+  printf("%0.1f,%0.1f,%0.1f\n", accelerometer.array[0], accelerometer.array[1], accelerometer.array[2]);
+//    printf("%0.1f,%0.1f,%0.1f\n", gyroscope.array[0], gyroscope.array[1], gyroscope.array[2]);
 }
