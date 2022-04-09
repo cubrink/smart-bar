@@ -39,7 +39,7 @@ void setup()
     }
   }
   
-  imu.dmpBegin(DMP_FEATURE_6X_LP_QUAT | // Enable 6-axis quat
+  imu.dmpBegin(DMP_FEATURE_6X_LP_QUAT, // Enable 6-axis quat
 //               DMP_FEATURE_GYRO_CAL, // Use gyro calibration
               10); // Set DMP FIFO rate to 10 Hz
   // DMP_FEATURE_LP_QUAT can also be used. It uses the 
@@ -74,11 +74,17 @@ void printIMUData(void)
   float q2 = imu.calcQuat(imu.qy);
   float q3 = imu.calcQuat(imu.qz);
 
+  float accelX = imu.calcAccel(imu.ax);
+  float accelY = imu.calcAccel(imu.ay);
+  float accelZ = imu.calcAccel(imu.az);
+
+  printf("%0.1f,%0.1f,%0.1f\n", accelX, accelY, accelZ); 
+
 //  SerialPort.println("Q: " + String(q0, 4) + ", " +
 //                    String(q1, 4) + ", " + String(q2, 4) + 
 //                    ", " + String(q3, 4));
 //  SerialPort.println("R/P/Y: " + String(imu.roll) + ", "
 //            + String(imu.pitch) + ", " + String(imu.yaw));
-  SerialPort.println(String(imu.roll) + "," + String(imu.pitch) + "," + String(imu.yaw));
+//  SerialPort.println(String(imu.roll) + "," + String(imu.pitch) + "," + String(imu.yaw));
 //  SerialPort.println("Time: " + String(imu.time) + " ms");
 }

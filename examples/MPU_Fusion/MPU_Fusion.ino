@@ -143,7 +143,7 @@ void loop() {
   FusionAhrsUpdate(&ahrs, gyroscope, accelerometer, magnetometer, deltaTime);
 
   // Print algorithm outputs
-  const FusionEuler euler = FusionQuaternionToEuler(FusionAhrsGetQuaternion(&ahrs));
+  FusionEuler euler = FusionQuaternionToEuler(FusionAhrsGetQuaternion(&ahrs));
   FusionVector earth = FusionAhrsGetEarthAcceleration(&ahrs);
 
 //  printf("Roll %0.1f, Pitch %0.1f, Yaw %0.1f, X %0.1f, Y %0.1f, Z %0.1f\n",
@@ -152,8 +152,8 @@ void loop() {
 //  printf("%0.1f,%0.1f,%0.1f,%0.1f,%0.1f,%0.1f\n",
 //           euler.angle.roll, euler.angle.pitch, euler.angle.yaw,
 //           accelX, accelY, accelZ);
-  printf("%0.1f,%0.1f,%0.1f\n", earth.axis.x, earth.axis.y, earth.axis.z);
-//  printf("%0.1f,%0.1f,%0.1f\n", euler.angle.roll, euler.angle.pitch, euler.angle.yaw);
+//  printf("%0.1f,%0.1f,%0.1f\n", earth.axis.x, earth.axis.y, earth.axis.z);
+  printf("%0.1f,%0.1f,%0.1f\n", euler.angle.roll, euler.angle.pitch, euler.angle.yaw);
 //  printf("%0.1f,%0.1f,%0.1f\n", accelerometer.array[0], accelerometer.array[1], accelerometer.array[2]);
 //    printf("%0.1f,%0.1f,%0.1f\n", gyroscope.array[0], gyroscope.array[1], gyroscope.array[2]);
 }
