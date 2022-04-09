@@ -1,5 +1,6 @@
-#include <Fusion.h>
 #include <SparkFunMPU9250-DMP.h>
+#include <Fusion.h>
+
 #include <stdio.h>
 
 #ifdef defined(SAMD)
@@ -16,10 +17,9 @@ unsigned long previousTimestamp;
 
 // Initialise algorithms
 FusionOffset offset;
-// FusionAhrs ahrs;
+FusionAhrs ahrs;
 
-FusionOffsetInitialise(&offset, SAMPLE_RATE);
-//FusionAhrsInitialise(&ahrs);
+
 
 const FusionMatrix gyroscopeMisalignment = {1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f};
 const FusionVector gyroscopeSensitivity = {1.0f, 1.0f, 1.0f};
@@ -88,6 +88,10 @@ void setup() {
   // set using the setCompassSampleRate() function.
   // This value can range between: 1-100Hz
   imu.setCompassSampleRate(10); // Set mag rate to 10Hz
+
+  FusionOffsetInitialise(&offset, SAMPLE_RATE);
+  FusionAhrsInitialise(&ahrs);
+  
   previousTimestamp = millis();
 }
 
@@ -119,29 +123,35 @@ void loop() {
 //  magnetometer.array[0], 
 //  magnetometer.array[1], 
 //  magnetometer.array[2]);
-  Serial.flush(); 
-  Serial.print(magX); 
-  Serial.print(",");
-  Serial.print(magY);
-  Serial.print(",");
-  Serial.print(magZ);
-  Serial.println();
+//  Serial.flush(); 
+//  Serial.print(magX); 
+//  Serial.print(",");
+//  Serial.print(magY);
+//  Serial.print(",");
+//  Serial.print(magZ);
+//  Serial.println();
   
   // Update gyroscope offset correction algorithm
-//  gyroscope = FusionOffsetUpdate(&offset, gyroscope);
-//
-//
-//  float deltaTime = (float) (timestamp - previousTimestamp) / 1000.0f;
-//  previousTimestamp = timestamp;
-//
-//  // Update gyroscope AHRS algorithm
-//  FusionAhrsUpdate(&ahrs, gyroscope, accelerometer, magnetometer, deltaTime);
-//
-//  // Print algorithm outputs
-//  const FusionEuler euler = FusionQuaternionToEuler(FusionAhrsGetQuaternion(&ahrs));
-//  const FusionVector earth = FusionAhrsGetEarthAcceleration(&ahrs);
-//
+  gyroscope = FusionOffsetUpdate(&offset, gyroscope);
+
+
+  float deltaTime = (float) (timestamp - previousTimestamp) / 1000.0f;
+  previousTimestamp = timestamp;
+
+  // Update gyroscope AHRS algorithm
+  FusionAhrsUpdate(&ahrs, gyroscope, accelerometer, magnetometer, deltaTime);
+
+  // Print algorithm outputs
+  const FusionEuler euler = FusionQuaternionToEuler(FusionAhrsGetQuaternion(&ahrs));
+  const FusionVector earth = FusionAhrsGetEarthAcceleration(&ahrs);
+
 //  printf("Roll %0.1f, Pitch %0.1f, Yaw %0.1f, X %0.1f, Y %0.1f, Z %0.1f\n",
 //           euler.angle.roll, euler.angle.pitch, euler.angle.yaw,
 //           earth.axis.x, earth.axis.y, earth.axis.z);
+//  printf("%0.1f,%0.1f,%0.1f,%0.1f,%0.1f,%0.1f\n",
+//           euler.angle.roll, euler.angle.pitch, euler.angle.yaw,
+//           accelX, accelY, accelZ);
+//  printf("%0.1f,%0.1f,%0.1f\n", earth.axis.x, earth.axis.y, earth.axis.z);
+//  printf("%0.1f,%0.1f,%0.1f\n", accelX, accelY, accelZ);
+    printf("%0.1f,%0.1f,%0.1f\n", gyroscope.array[0], gyroscope.array[1], gyroscope.array[2]);
 }
