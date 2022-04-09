@@ -1,0 +1,2 @@
+MPU-6500 datasheet: https://datasheet.octopart.com/MPU-6500-InvenSense-datasheet-138896167.pdf
+
