@@ -23,6 +23,8 @@ MPU-9250, and stream its sensor outputs to a serial monitor.
 
 MPU9250_DMP imu;
 
+
+
 void setup() 
 {
   SerialPort.begin(115200);
@@ -103,6 +105,7 @@ void printIMUData(void)
   // Use the calcAccel, calcGyro, and calcMag functions to
   // convert the raw sensor readings (signed 16-bit values)
   // to their respective units.
+  imu.update();
   float accelX = imu.calcAccel(imu.ax);
   float accelY = imu.calcAccel(imu.ay);
   float accelZ = imu.calcAccel(imu.az);

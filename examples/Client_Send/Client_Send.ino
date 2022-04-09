@@ -4,6 +4,7 @@
 #include "BluetoothSerial.h"
 
 BluetoothSerial SerialBT;
+static unsigned int counter = 0;
 
 void setup() {
   Serial.begin(115200);
@@ -20,6 +21,9 @@ void setup() {
 }
 
 void loop() {
-  delay(1000);
-
+  counter++;
+  SerialBT.print("My counter is ");
+  SerialBT.print(counter);
+  SerialBT.write(0);
+  Serial.println(counter);
 }
