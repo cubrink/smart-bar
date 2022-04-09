@@ -1,0 +1,3 @@
+OLED: 0x3C
+Accelerometer: 0x68
+Pressure: 0x77
