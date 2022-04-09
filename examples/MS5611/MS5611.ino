@@ -7,6 +7,8 @@
 
 
 #include "MS5611.h"
+#include <SimpleKalmanFilter.h>
+
 
 //  BREAKOUT  MS5611  aka  GY63 - see datasheet
 //
@@ -35,6 +37,25 @@ MS5611 MS5611(0x77);
 uint32_t start, stop;
 
 
+
+float avg = 0;
+
+int ht_buffer_cntr = 0;
+//const int BUF_MAX_CNT = 25;
+//float ht_buffer[BUF_MAX_CNT];
+
+float cur_pressure_value = 0.0;
+float last_pressure_value = 0.0;
+float pressure_difference = 0.0;
+SimpleKalmanFilter pressureKalmanFilter(0.01, 0.01, 0.1);
+SimpleKalmanFilter pressureDifferenceKalmanFilter(20.0, 20.0, 0.05);
+
+// Serial output refresh time
+const long SERIAL_REFRESH_TIME = 100;
+long refresh_time;
+
+
+
 void setup()
 {
   Serial.begin(115200);
@@ -42,101 +63,46 @@ void setup()
 
   pinMode(LED_BUILTIN, OUTPUT);
 
-  Serial.println();
-  Serial.println(__FILE__);
-  Serial.print("MS5611_LIB_VERSION: ");
-  Serial.println(MS5611_LIB_VERSION);
+//  Serial.println();
+//  Serial.println(__FILE__);
+//  Serial.print("MS5611_LIB_VERSION: ");
+//  Serial.println(MS5611_LIB_VERSION);
 
-  if (MS5611.begin() == true)
+  while (!MS5611.begin())
   {
-    Serial.println("MS5611 found.");
   }
-  else
-  {
-    Serial.println("MS5611 not found. halt.");
-    while (1)
-    {
-      digitalWrite(LED_BUILTIN, HIGH);
-      delay(1000);
-      digitalWrite(LED_BUILTIN, LOW);
-      delay(1000);
-    }
-  }
-  Serial.println();
+
+
 
   MS5611.setOversampling(OSR_ULTRA_HIGH);
+
+  int sample_cnt = 200;
+  avg = 0;
+  for(int i = 0; i < sample_cnt; i++)
+  {
+    MS5611.read();
+    avg += MS5611.getPressure();
+  }
+  avg = avg / float(sample_cnt);
+  last_pressure_value = avg;
+  
 }
 
 
-/*
-  There are 5 oversampling settings, each corresponding to a different amount of milliseconds
-  The higher the oversampling, the more accurate the reading will be, however the longer it will take.
-  OSR_ULTRA_HIGH -> 8.22 millis
-  OSR_HIGH       -> 4.11 millis
-  OSR_STANDARD   -> 2.1 millis
-  OSR_LOW        -> 1.1 millis
-  OSR_ULTRA_LOW  -> 0.5 millis   Default = backwards compatible
-*/
+
 void loop()
 {
-  Serial.println("ULTRA LOW");
-  digitalWrite(LED_BUILTIN, HIGH);
-  MS5611.setOversampling(OSR_ULTRA_LOW);
-  test();
-  digitalWrite(LED_BUILTIN, LOW);
-  delay(1000);
 
-  Serial.println("LOW");
-  digitalWrite(LED_BUILTIN, HIGH);
-  MS5611.setOversampling(OSR_LOW);
-  test();
-  digitalWrite(LED_BUILTIN, LOW);
-  delay(1000);
 
-  Serial.println("STANDARD");
-  digitalWrite(LED_BUILTIN, HIGH);
-  MS5611.setOversampling(OSR_STANDARD);
-  test();
-  digitalWrite(LED_BUILTIN, LOW);
-  delay(1000);
+  // read the sensor using MS5611.read()
+  // return the sensor value with MS5611.getPressure()
+  MS5611.read();
+  cur_pressure_value = (pressureKalmanFilter.updateEstimate(MS5611.getPressure()) - avg) * -1000.0;
+  Serial.print(cur_pressure_value);
 
-  Serial.println("HIGH");
-  digitalWrite(LED_BUILTIN, HIGH);
-  MS5611.setOversampling(OSR_HIGH);
-  test();
-  digitalWrite(LED_BUILTIN, LOW);
-  delay(1000);
+  pressure_difference = pressureDifferenceKalmanFilter.updateEstimate((cur_pressure_value - last_pressure_value) * 20.0);
+  last_pressure_value = cur_pressure_value;
+  Serial.print("\t");
+  Serial.println(pressure_difference);
 
-  Serial.println("ULTRA HIGH");
-  digitalWrite(LED_BUILTIN, HIGH);
-  MS5611.setOversampling(OSR_ULTRA_HIGH);
-  test();
-  digitalWrite(LED_BUILTIN, LOW);
-  delay(1000);
-  Serial.println();
 }
-
-
-void test()
-{
-  start = micros();
-  int result = MS5611.read();
-  stop = micros();
-  if (result != MS5611_READ_OK)
-  {
-    Serial.print("Error in read: ");
-    Serial.println(result);
-  }
-  else
-  {
-    Serial.print("\tP:\t");
-    Serial.print(MS5611.getPressure(), 2);
-    Serial.print("\tt:\t");
-    Serial.print(stop - start);
-    Serial.println();
-  }
-}
-
-
-// -- END OF FILE --void setup() {
-  // put your setup code here, to run once:
