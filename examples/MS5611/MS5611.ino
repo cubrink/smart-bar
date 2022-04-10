@@ -107,12 +107,19 @@ const long SERIAL_REFRESH_TIME = 100;
 long refresh_time;
 
 
+const int BUZZER = 33;
+unsigned long buzzer_timer;
+
 
 void setup()
 {
   Serial.begin(115200);
   while (!Serial);
   while (!MS5611.begin());
+
+  // Initialize GIOP
+  pinMode(BUZZER, OUTPUT);
+  digitalWrite(BUZZER, LOW);
 
 
   MS5611.setOversampling(OSR_ULTRA_HIGH);
@@ -203,8 +210,8 @@ void loop()
       // save time passed since last action
       time_passed = (millis() - motion_timer);
 
-      // if bar is moving upwards after 250 ms and rep direction should not start high, change bar state to rising
-      if((cur_bar_action == MOVING_UP) && (time_passed >= 250) && (cur_rep_direction != START_HIGH))
+      // if bar is moving upwards after 500 ms and rep direction should not start high, change bar state to rising
+      if((cur_bar_action == MOVING_UP) && (time_passed >= 500) && (cur_rep_direction != START_HIGH))
       {
         cur_bar_state = RISING_0;
         if(cur_rep_direction == REP_UNKNOWN)
@@ -213,8 +220,8 @@ void loop()
           cur_rep_direction = START_LOW;
         }
       }
-      // if bar is moving downwards after 250 ms and rep direction should not start low, change bar state to falling
-      else if((cur_bar_action == MOVING_DN) && (time_passed >= 250) && (cur_rep_direction != START_LOW))
+      // if bar is moving downwards after 500 ms and rep direction should not start low, change bar state to falling
+      else if((cur_bar_action == MOVING_DN) && (time_passed >= 500) && (cur_rep_direction != START_LOW))
       {
         cur_bar_state = FALLING_0;
         if(cur_rep_direction == REP_UNKNOWN)
@@ -326,6 +333,9 @@ void loop()
       
       rep_count = 1;
 
+      digitalWrite(BUZZER, HIGH);
+      buzzer_timer = millis();
+
       //TESTING PURPOSES ONLLY!!!!!
       rep_count = 0;
       
@@ -341,7 +351,11 @@ void loop()
   }
 
 
-
+  // turn off buzzer after 1 second if on
+  if(digitalRead(BUZZER) && (millis() - buzzer_timer >= 1000))
+  {
+    digitalWrite(BUZZER, LOW);
+  }
 
 
 
