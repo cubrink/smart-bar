@@ -1,6 +1,6 @@
 // test active buzzer on GIOP36
 
-const int buzzer_pin = 33;
+const int BUZZER = 33;
 
 void setup() {
   Serial.begin(115200);
