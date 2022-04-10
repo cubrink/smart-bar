@@ -1,6 +1,7 @@
 #include <SparkFunMPU9250-DMP.h>
 #include <Fusion.h>
 #include <SimpleKalmanFilter.h>
+#include "BluetoothSerial.h"
 
 #include <stdio.h>
 
@@ -17,7 +18,7 @@ const unsigned int SAMPLE_RATE = 100;
 MPU9250_DMP imu;
 unsigned long previousTimestamp;
 
-
+BluetoothSerial SerialBT;
 
 /* --- Begin configuration for Kalman Filters  --- */
 // Acceleration
@@ -89,6 +90,8 @@ void setup() {
   FusionOffsetInitialise(&offset, SAMPLE_RATE);
   FusionAhrsInitialise(&ahrs);
   FusionAhrsSetSettings(&ahrs, &settings);
+
+  SerialBT.begin("ESP32test"); 
   
   previousTimestamp = millis();
 }
@@ -149,8 +152,6 @@ void loop() {
   kf_v = KF_v.updateEstimate(kf_v + deltaTime*kf_a);
   kf_v = max(0.0f, kf_v);
 
-//  printf("%0.1f,%0.1f,%0.1f\n", kf_vx*5, kf_vy*5, kf_vz*5);
   printf("%0.1f\n", kf_a);
-
-//  printf("%0.1f,%0.1f,%0.1f\n", kf_ax*5, kf_ay*5, kf_az*5);
+  SerialBT.println("kf_a"); 
 }
