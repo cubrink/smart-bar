@@ -1,7 +1,9 @@
 #include <SparkFunMPU9250-DMP.h>
 #include <Fusion.h>
+#include <SimpleKalmanFilter.h>
 
 #include <stdio.h>
+
 
 #ifdef defined(SAMD)
  #define SerialPort SerialUSB
@@ -9,21 +11,50 @@
   #define SerialPort Serial
 #endif
 
-
-
 // replace this with actual sample rate
 const unsigned int SAMPLE_RATE = 100;
 
 MPU9250_DMP imu;
 unsigned long previousTimestamp;
 
+
+
+/* --- Begin configuration for Kalman Filters  --- */
+// Acceleration
+SimpleKalmanFilter KF_ax(0.06, 0.06, 0.1);
+SimpleKalmanFilter KF_ay(0.06, 0.06, 0.1);
+SimpleKalmanFilter KF_az(0.08, 0.08, 0.1);
+// Velocity
+SimpleKalmanFilter KF_vx(20*0.12, 20*0.12, 0.1);
+SimpleKalmanFilter KF_vy(20*0.12, 20*0.12, 0.1);
+SimpleKalmanFilter KF_vz(20*0.16, 20*0.16, 0.1);
+// Position
+SimpleKalmanFilter KF_px(0.24, 0.24, 0.1);
+SimpleKalmanFilter KF_py(0.24, 0.24, 0.1);
+SimpleKalmanFilter KF_pz(0.32, 0.32, 0.1);
+
+float kf_ax = 0;
+float kf_ay = 0;
+float kf_az = 0;
+
+float kf_vx = 0;
+float kf_vy = 0;
+float kf_vz = 0;
+
+float kf_px = 0;
+float kf_py = 0;
+float kf_pz = 0;
+
+/* --- End configuration for Kalman Filters --- */
+
+
+/* --- Begin configuration for attitude and heading reference system (AHSR)  --- */
 // Initialise algorithms
 FusionOffset offset;
 FusionAhrs ahrs;
 
-
-//FusionAhrsInitialise(&ahrs);
-
+// Calibration settings
+// Acquired with blood, sweat and tears
 const FusionMatrix gyroscopeMisalignment = {1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f};
 const FusionVector gyroscopeSensitivity = {1.0f, 1.0f, 1.0f};
 const FusionVector gyroscopeOffset = {1.79f, -0.17f, -1.57f};
@@ -41,12 +72,12 @@ const FusionAhrsSettings settings = {
         .rejectionTimeout = 5 * SAMPLE_RATE /* 5 seconds */
 };
 
+/* --- End configuration for attitude and heading reference system (AHSR)  --- */
+
 
 void setup() {
   // put your setup code here, to run once:
     SerialPort.begin(9600);
-
-    FusionOffsetInitialise(&offset, SAMPLE_RATE);
 
   // Call imu.begin() to verify communication with and
   // initialize the MPU-9250 to it's default values.
@@ -63,37 +94,15 @@ void setup() {
     }
   }
 
-  // Use setSensors to turn on or off MPU-9250 sensors.
-  // Any of the following defines can be combined:
-  // INV_XYZ_GYRO, INV_XYZ_ACCEL, INV_XYZ_COMPASS,
-  // INV_X_GYRO, INV_Y_GYRO, or INV_Z_GYRO
-  // Enable all sensors:
+  imu.dmpBegin(DMP_FEATURE_6X_LP_QUAT, 10); // Set DMP FIFO rate to 10 Hz, Enable 6-axis quat
   imu.setSensors(INV_XYZ_GYRO | INV_XYZ_ACCEL | INV_XYZ_COMPASS);
-
-  // Use setGyroFSR() and setAccelFSR() to configure the
-  // gyroscope and accelerometer full scale ranges.
-  // Gyro options are +/- 250, 500, 1000, or 2000 dps
   imu.setGyroFSR(2000); // Set gyro to 2000 dps
-  // Accel options are +/- 2, 4, 8, or 16 g
   imu.setAccelFSR(2); // Set accel to +/-2g
-  // Note: the MPU-9250's magnetometer FSR is set at 
-  // +/- 4912 uT (micro-tesla's)
-
-  // setLPF() can be used to set the digital low-pass filter
-  // of the accelerometer and gyroscope.
-  // Can be any of the following: 188, 98, 42, 20, 10, 5
-  // (values are in Hz).
   imu.setLPF(5); // Set LPF corner frequency to 5Hz
-
-  // The sample rate of the accel/gyro can be set using
-  // setSampleRate. Acceptable values range from 4Hz to 1kHz
   imu.setSampleRate(10); // Set sample rate to 10Hz
-
-  // Likewise, the compass (magnetometer) sample rate can be
-  // set using the setCompassSampleRate() function.
-  // This value can range between: 1-100Hz
   imu.setCompassSampleRate(10); // Set mag rate to 10Hz
 
+  
   FusionOffsetInitialise(&offset, SAMPLE_RATE);
   FusionAhrsInitialise(&ahrs);
   FusionAhrsSetSettings(&ahrs, &settings);
@@ -102,9 +111,17 @@ void setup() {
 }
 
 void loop() {
-  
-  unsigned long timestamp = millis();
+  if (!imu.fifoAvailable()) {
+    return;
+  }
+  if (imu.dmpUpdateFifo() != INV_SUCCESS) {
+    return;
+  }
+
   imu.update();
+  imu.computeEulerAngles();
+  unsigned long timestamp = imu.time;
+
   float accelX = imu.calcAccel(imu.ax);
   float accelY = imu.calcAccel(imu.ay);
   float accelZ = imu.calcAccel(imu.az);
@@ -124,22 +141,9 @@ void loop() {
   gyroscope = FusionCalibrationInertial(gyroscope, gyroscopeMisalignment, gyroscopeSensitivity, gyroscopeOffset);
   accelerometer = FusionCalibrationInertial(accelerometer, accelerometerMisalignment, accelerometerSensitivity, accelerometerOffset);
   magnetometer = FusionCalibrationMagnetic(magnetometer, softIronMatrix, hardIronOffset);
-//
-//  printf("%f,%f,%f\n", 
-//  magnetometer.array[0], 
-//  magnetometer.array[1], 
-//  magnetometer.array[2]);
-//  Serial.flush(); 
-//  Serial.print(magX); 
-//  Serial.print(",");
-//  Serial.print(magY);
-//  Serial.print(",");
-//  Serial.print(magZ);
-//  Serial.println();
   
   // Update gyroscope offset correction algorithm
   gyroscope = FusionOffsetUpdate(&offset, gyroscope);
-
 
   float deltaTime = (float) (timestamp - previousTimestamp) / 1000.0f;
   previousTimestamp = timestamp;
@@ -147,18 +151,35 @@ void loop() {
   // Update gyroscope AHRS algorithm
   FusionAhrsUpdate(&ahrs, gyroscope, accelerometer, magnetometer, deltaTime);
 
-  // Print algorithm outputs
-  FusionEuler euler = FusionQuaternionToEuler(FusionAhrsGetQuaternion(&ahrs));
+  // Ignore acceleration from gravity
   FusionVector earth = FusionAhrsGetEarthAcceleration(&ahrs);
+  
+//  printf("%0.1f,%0.1f,%0.1f,", earth.axis.x, earth.axis.y, earth.axis.z);
+//  printf("%0.1f,%0.1f,%0.1f\n", imu.roll, imu.pitch, imu.yaw); 
 
-//  printf("Roll %0.1f, Pitch %0.1f, Yaw %0.1f, X %0.1f, Y %0.1f, Z %0.1f\n",
-//           euler.angle.roll, euler.angle.pitch, euler.angle.yaw,
-//           earth.axis.x, earth.axis.y, earth.axis.z);
-//  printf("%0.1f,%0.1f,%0.1f,%0.1f,%0.1f,%0.1f\n",
-//           euler.angle.roll, euler.angle.pitch, euler.angle.yaw,
-//           accelX, accelY, accelZ);
-//  printf("%0.1f,%0.1f,%0.1f\n", earth.axis.x, earth.axis.y, earth.axis.z);
-  printf("%0.1f,%0.1f,%0.1f\n", euler.angle.roll, euler.angle.pitch, euler.angle.yaw);
-//  printf("%0.1f,%0.1f,%0.1f\n", accelerometer.array[0], accelerometer.array[1], accelerometer.array[2]);
-//    printf("%0.1f,%0.1f,%0.1f\n", gyroscope.array[0], gyroscope.array[1], gyroscope.array[2]);
+  // Update acceleration, velocity and position tracking
+  float kf_ax_prev = kf_ax;
+  float kf_ay_prev = kf_ay;
+  float kf_az_prev = kf_az;
+
+  float kf_vx_prev = kf_vx;
+  float kf_vy_prev = kf_vy;
+  float kf_vz_prev = kf_vz;
+ 
+  kf_ax = KF_ax.updateEstimate(earth.axis.x);
+  kf_ay = KF_ay.updateEstimate(earth.axis.y);
+  kf_az = KF_az.updateEstimate(earth.axis.z);
+
+  kf_vx = KF_vx.updateEstimate((20*kf_ax - 20*kf_ax_prev)/deltaTime);
+  kf_vy = KF_vy.updateEstimate((20*kf_ay - 20*kf_ay_prev)/deltaTime);
+  kf_vz = KF_vz.updateEstimate((20*kf_az - 20*kf_az_prev)/deltaTime);
+
+  kf_px = KF_px.updateEstimate((kf_vx - kf_vx_prev)/deltaTime);
+  kf_py = KF_py.updateEstimate((kf_vy - kf_vy_prev)/deltaTime);
+  kf_pz = KF_pz.updateEstimate((kf_vz - kf_vy_prev)/deltaTime);
+
+//  printf("%0.1f,%0.1f,%0.1f\n", kf_vx*5, kf_vy*5, kf_vz*5);
+  printf("%0.1f\n", 5*kf_vy);
+
+//  printf("%0.1f,%0.1f,%0.1f\n", kf_ax*5, kf_ay*5, kf_az*5);
 }
