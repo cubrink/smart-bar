@@ -1,5 +1,6 @@
-#include <Fusion.h>
 #include <SparkFunMPU9250-DMP.h>
+#include "Fusion.h"
+#include "FusionOffset.h"
 #include <stdio.h>
 
 #ifdef defined(SAMD)
@@ -7,6 +8,8 @@
 #else
   #define SerialPort Serial
 #endif
+
+
 
 // replace this with actual sample rate
 const unsigned int SAMPLE_RATE = 10;
@@ -18,7 +21,6 @@ unsigned long previousTimestamp;
 FusionOffset offset;
 // FusionAhrs ahrs;
 
-FusionOffsetInitialise(&offset, SAMPLE_RATE);
 //FusionAhrsInitialise(&ahrs);
 
 const FusionMatrix gyroscopeMisalignment = {1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f};
@@ -42,6 +44,8 @@ const FusionAhrsSettings settings = {
 void setup() {
   // put your setup code here, to run once:
     SerialPort.begin(9600);
+
+    FusionOffsetInitialise(&offset, SAMPLE_RATE);
 
   // Call imu.begin() to verify communication with and
   // initialize the MPU-9250 to it's default values.
