@@ -97,6 +97,8 @@ void setup() {
 }
 
 void loop() {
+
+  /* --- Begin Read IMU --- */
   if (!imu.fifoAvailable()) {
     return;
   }
@@ -118,6 +120,8 @@ void loop() {
   float magY = imu.calcMag(imu.my);
   float magZ = imu.calcMag(imu.mz);
 
+  /* --- Begin Read IMU --- */
+  /* --- Begin Correct IMU Data --- */
   // Acquire latest sensor data
   FusionVector gyroscope = {gyroX, gyroY, gyroZ};
   FusionVector accelerometer = {accelX, accelY, accelZ};
@@ -130,15 +134,21 @@ void loop() {
   
   // Update gyroscope offset correction algorithm
   gyroscope = FusionOffsetUpdate(&offset, gyroscope);
+  
+  /* --- End Correct IMU Data--- */
 
+  /* ---  Begin AHRS Algorithm for heading and acc --- */
   float deltaTime = (float) (timestamp - previousTimestamp) / 1000.0f;
   previousTimestamp = timestamp;
 
   // Update gyroscope AHRS algorithm
   FusionAhrsUpdate(&ahrs, gyroscope, accelerometer, magnetometer, deltaTime);
-
+  
   // Ignore acceleration from gravity
   FusionVector earth = FusionAhrsGetEarthAcceleration(&ahrs);
+  /* ---  End AHRS Algorithm for heading and acc --- */
+
+  
   
 //  printf("%0.1f,%0.1f,%0.1f,", earth.axis.x, earth.axis.y, earth.axis.z);
 //  printf("%0.1f,%0.1f,%0.1f\n", imu.roll, imu.pitch, imu.yaw); 
@@ -152,6 +162,7 @@ void loop() {
   kf_v = KF_v.updateEstimate(kf_v + deltaTime*kf_a);
   kf_v = max(0.0f, kf_v);
 
-  printf("%0.1f\n", kf_a);
-  SerialBT.println("kf_a"); 
+  char message[1024];
+  message = sprintf("%0.1f\n\0", kf_a);
+  SerialBT.println(message); 
 }
