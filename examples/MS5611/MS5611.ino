@@ -11,7 +11,7 @@
 #include <cppQueue.h>
 
 
-
+// Barometric Pressure Sensor
 MS5611 MS5611(0x77);
 
 #ifndef LED_BUILTIN
@@ -102,11 +102,7 @@ unsigned long queue_timer_cycle_scan = 500;
 SimpleKalmanFilter pressureKalmanFilter(0.01, 0.01, 0.1);
 SimpleKalmanFilter pressureDifferenceKalmanFilter(20.0, 20.0, 0.05);
 
-// Serial output refresh time
-const long SERIAL_REFRESH_TIME = 100;
-long refresh_time;
-
-
+// Buzzer attached to GIPO pin 33
 const int BUZZER = 33;
 unsigned long buzzer_timer;
 
@@ -364,6 +360,10 @@ void loop()
   //Serial.print(temp_avg_raw);
 
   //Serial.println();
+
+
+
+  // DEBUG
   Serial.print("\t");
 
   Serial.print(cur_bar_state);
