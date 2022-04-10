@@ -3,6 +3,7 @@
 #include <SimpleKalmanFilter.h>
 #include "BluetoothSerial.h"
 #include "RepTracker.h"
+#include "MS5611.h"
 
 #include <stdio.h>
 #include <cppQueue.h>
@@ -35,8 +36,6 @@ unsigned long previousTimestamp;
 MPU9250_DMP imu;
 BluetoothSerial SerialBT;
 MS5611 MS5611(0x77);
-
-
 
 /* --- Begin configuration for Kalman Filters  --- */
 // Acceleration
@@ -424,12 +423,8 @@ void loop() {
 
       digitalWrite(BUZZER, HIGH);
       buzzer_timer = millis();
-      
-      // wait for rep_count to be set back to zero
-      if(!rep_count)
-      {
-        cur_bar_state = STATIONARY;
-      }
+      cur_bar_state = STATIONARY;
+     
       break;
 
     default:
@@ -448,10 +443,10 @@ void loop() {
   /* ---- Begin Bluetooth communication ---- */
 
   char message[1024];
-  message = sprintf("%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%i", 
-    imu.roll, imu.pitch, imu.yaw, earth.axis.x, earth.axis.y, earth.axis.z, kf_a, rep_count
+  sprintf(message, "%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%i,%i", 
+    imu.roll, imu.pitch, imu.yaw, earth.axis.x, earth.axis.y, earth.axis.z, kf_a, pressure_difference, cur_bar_state, rep_count
   );
-  SerialBT.println(message); 
+  SerialBT.println(message);
   rep_count = 0;
 
   /* ---- End Bluetooth communication ---- */
@@ -476,7 +471,7 @@ float set_initial_avg_pressure()
 
 float get_pressure_difference(const float int_avg, float &prev_value)
 {
-  bool LOCAL_DEBUG = true;
+  bool LOCAL_DEBUG = false;
   
   // read the sensor using MS5611.read()
   // return the sensor value with MS5611.getPressure()
